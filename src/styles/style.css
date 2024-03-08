@@ -18,3 +18,13 @@ form {
 h3 {
     margin-top: 2rem;
 }
+
+.starting-xi-container div {
+    width: 15rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.starting-xi-container div:hover {
+    background: lightblue;
+}

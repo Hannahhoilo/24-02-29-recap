@@ -2,7 +2,7 @@
 import firebaseConfig from "./firebaseConfig";
 
 import {initializeApp} from "firebase/app";
-import {getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc} from "firebase/firestore"
+import {getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, orderBy, serverTimestamp} from "firebase/firestore"
 
 initializeApp(firebaseConfig)
 
@@ -17,7 +17,7 @@ const jersey = document.querySelector('.jersey');
 const subscheck = document.querySelector('.subs');
 const addPlayerButton = document.querySelector('.add-player');
 const startingXiContainer = document.querySelector('.starting-xi-container');
-const subsContainer = document.querySelector('.sub-container');
+const subsContainer = document.querySelector('.subs-container');
 const addPlayerForm = document.querySelector('form');
 
 addPlayerForm.addEventListener("submit", (event) =>{
@@ -25,8 +25,9 @@ addPlayerForm.addEventListener("submit", (event) =>{
 	const newPlayer = {
 		firstname: firstname.value,
 		lastname: lastname.value,
-		jersey: jersey.value,
+		jersey: Number(jersey.value),
 		isSub: subscheck.checked,
+		serverTimestamp: serverTimestamp()
 	}
 	addDoc(matchdayCollection, newPlayer)
 	.then(()=> {
@@ -38,15 +39,27 @@ addPlayerForm.addEventListener("submit", (event) =>{
 
 function renderXi(playerlist){
 	startingXiContainer.textContent = "",
+	subsContainer.textContent = "",
 	playerlist.forEach((player, index)=> {
 		const playerDiv = document.createElement("div");
-		playerDiv.textContent = `${index+1} ${player.firstname} ${player.lastname}`
 		playerDiv.dataset.id = player.id;
 		const deleteButton = document.createElement("button");
 		deleteButton.textContent = "Delete"
 
+		let subsIndex = 0
+		let playerIndex = 0
+
 		playerDiv.append(deleteButton)
-		startingXiContainer.append(playerDiv)
+
+		if (player.isSub) {
+			subsIndex++
+			playerDiv.textContent = `${index+1} ${player.firstname} ${player.lastname} -- ${player.jersey}`
+			subsContainer.append(playerDiv)
+		} else {
+			playerIndex++
+			playerDiv.textContent = `${index+1} ${player.firstname} ${player.lastname} -- ${player.jersey}`
+			startingXiContainer.append(playerDiv)
+		}
 
 		deleteButton.addEventListener("click", (event)=> {
 			event.preventDefault();
@@ -57,12 +70,16 @@ function renderXi(playerlist){
 	});
 }
 
-
-onSnapshot(matchdayCollection, (snapshot)=>{
-	const currentXi = [];
-	snapshot.forEach((doc)=>{
-		currentXi.push({id: doc.id, ...doc.data()})
-		console.log(currentXi);
+function fetchData(){
+	const sortedXi = query(matchdayCollection, orderBy("serverTimestamp", "asc"))
+	onSnapshot(sortedXi, (snapshot)=>{
+		const currentXi = [];
+		snapshot.forEach((doc)=>{
+			currentXi.push({id: doc.id, ...doc.data()})
+			console.log(currentXi);
+		})
+		renderXi(currentXi)
 	})
-	renderXi(currentXi)
-})
+}
+
+fetchData();
